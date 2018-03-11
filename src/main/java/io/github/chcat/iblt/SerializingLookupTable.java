@@ -2,6 +2,7 @@ package io.github.chcat.iblt;
 
 import io.github.chcat.iblt.cells.Cells;
 
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -29,16 +30,16 @@ public abstract class SerializingLookupTable<K,V,S,T> extends InvertibleBloomLoo
     }
 
     @Override
-    public void remove(K key, V value) {
+    public boolean remove(K key, V value) {
         S serializedKey = keySerializer.apply(key);
-        remove(serializedKey, valueSerializer.apply(value), getRelatedIndexes(key, serializedKey));
+        return remove(serializedKey, valueSerializer.apply(value), getRelatedIndexes(key, serializedKey));
     }
 
     @Override
-    public V get(K key) {
+    public Optional<V> get(K key) {
         S serializedKey = keySerializer.apply(key);
-        T serializedValue = get(serializedKey, getRelatedIndexes(key, serializedKey));
-        return valueDeserializer.apply(serializedValue);
+        Optional<T> serializedValue = get(serializedKey, getRelatedIndexes(key, serializedKey));
+        return serializedValue == null ? null : Optional.ofNullable(valueDeserializer.apply(serializedValue.orElse(null)));
     }
 
     @Override

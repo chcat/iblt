@@ -26,6 +26,10 @@ public interface Cells<K,V> {
      */
     boolean isEmpty(int index);
 
+    default boolean isInconsistent(int index){
+        return false;
+    };
+
     /**
      * Accumulates the key-value pair in the cell addressed by index.
      * @param index address of the cell

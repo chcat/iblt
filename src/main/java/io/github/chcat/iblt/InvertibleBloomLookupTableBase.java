@@ -3,6 +3,7 @@ package io.github.chcat.iblt;
 import io.github.chcat.iblt.cells.Cells;
 
 import java.util.ArrayDeque;
+import java.util.Optional;
 import java.util.Queue;
 
 /**
@@ -10,6 +11,7 @@ import java.util.Queue;
  */
 public abstract class InvertibleBloomLookupTableBase<K,V,C>  {
     protected final int size;
+    protected final boolean failFast = true;
     protected final Cells<K,V> cells;
 
     protected InvertibleBloomLookupTableBase(Cells<K,V> cells){
@@ -23,21 +25,49 @@ public abstract class InvertibleBloomLookupTableBase<K,V,C>  {
         }
     }
 
-    protected final void remove(K key, V value, int[] indexes){
+    protected final boolean remove(K key, V value, int[] indexes) throws IllegalStateException {
+        indexes = normalize(indexes);
+        boolean allConsistent = true;
+
         for (int index : normalize(indexes)){
             cells.remove(index, key, value);
+            allConsistent &= !cells.isInconsistent(index);
         }
+
+        // The root cause of the detected inconsistency may be an action in the distant past
+        // so it can not be repaired rolling back the current modification...
+        if (failFast && !allConsistent){
+            throw new DataCorruptionException();
+        }
+
+        return allConsistent;
     }
 
-    protected final V get(K key, int[] indexes){
+    protected final Optional<V> get(K key, int[] indexes) throws IllegalStateException {
         for (int index : normalize(indexes)){
             if (cells.isEmpty(index)){
-                return null;
-            } else if (cells.isViable(index)){ // TODO: check the key
-                return cells.getValue(index);
+                // no value
+                return Optional.empty();
+            } else if (cells.isViable(index)){
+                V value = cells.getValue(index);
+                // check the key matches
+                cells.remove(index, key, value);
+
+                if (cells.isEmpty(index)){
+                    cells.put(index, key, value);
+                    return Optional.ofNullable(value);
+                } else {
+                    cells.put(index, key, value);
+                    return Optional.empty();
+                }
             }
         }
-        throw new RuntimeException();
+
+        if (failFast){
+            throw new IllegalStateException(String.format("Not possible to get the value for %s", key));
+        }
+
+        return null;
     }
 
     public void drain(C collector) {

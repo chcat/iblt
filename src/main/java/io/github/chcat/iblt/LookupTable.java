@@ -2,6 +2,7 @@ package io.github.chcat.iblt;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 /**
@@ -11,13 +12,13 @@ public interface LookupTable<K,V> {
 
     void put(K key, V value);
 
-    void remove(K key, V value);
+    boolean remove(K key, V value) throws IllegalStateException;
 
-    V get(K key);
+    Optional<V> get(K key) throws IllegalStateException;
 
-    void drain(BiConsumer<K,V> consumer);
+    void drain(BiConsumer<K,V> consumer) throws IllegalStateException;
 
-    default Map<K, V> drain() {
+    default Map<K, V> drain() throws IllegalStateException {
         Map<K,V> map = new HashMap<>();
         drain((k,v) -> map.put(k,v)); // TODO: check for duplicates
         return map;

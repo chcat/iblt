@@ -2,6 +2,7 @@ package io.github.chcat.iblt;
 
 import io.github.chcat.iblt.cells.Cells;
 
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -21,11 +22,11 @@ public class RawLookupTable<K,V> extends InvertibleBloomLookupTableBase<K,V, BiC
         put(key, value, getRelatedIndexes(key));
     }
 
-    public void remove(K key, V value){
-        remove(key, value, getRelatedIndexes(key));
+    public boolean remove(K key, V value){
+        return remove(key, value, getRelatedIndexes(key));
     }
 
-    public V get(K key){
+    public Optional<V> get(K key){
         return get(key, getRelatedIndexes(key));
     }
 
